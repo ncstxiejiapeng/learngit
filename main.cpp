@@ -1,9 +1,15 @@
 #include <iostream>
+#include<LongImageProcess.h>
+#include <thread>
 
 using namespace std;
 
-int main(int argc, char *argv[])
+int main()
 {
-    cout << "Hello World!" << endl;
-    return 0;
+    LongImageProcess process;
+    std::thread t1(&LongImageProcess::LongImageProducter,process);
+    std::thread t2(&LongImageProcess::ImageConsumer,process);
+        t2.join();
+    t1.join();
+//    process.LongImageProducter();
 }
