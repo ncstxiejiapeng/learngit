@@ -10,7 +10,7 @@
 volatile unsigned int proIdx = 0;                   //生产
 volatile unsigned int consIdx = 0;                //消费
  int exp_vule=32;                                                    //曝光值
-  int bright=20;                                             //标准亮度
+  int bright=12;                                             //标准亮度
   Mat LongSrcImage;
 
 void LongImageProcess:: LongImageProducter(){
@@ -79,7 +79,7 @@ void LongImageProcess::ImageConsumer(){
              consIdx++;
 
 //             cap>>LongSrcImage;
-             imshow("处理后",LongSrcImage);
+//             imshow("处理后",LongSrcImage);
              LongFindArmor FinalArmorData;
 
              if(FinalArmorData.IsHaveArmor(LongSrcImage)){
