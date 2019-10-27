@@ -8,6 +8,11 @@ using namespace cv::ml;
 int xuhao = 1500;
 char filename[200];
 float BeiLv = 1.0;
+RM_ArmorDate BestArmor;
+Mat ROI;
+Rect ArmorRoi;
+int max_width = 640;
+int max_hight = 480;
 
 //大端转小端
 int reverseInt(int i);
@@ -15,7 +20,7 @@ int reverseInt(int i);
 ArmorColor color = RED;//!更改目标装甲颜色
 int GrayValue =49;
 int BinaryValue = 32;
-vector<Point> leds;              //点形式存储灯条
+vector<Point2f> leds;              //点形式存储灯条
 int number_vuler = 20;
  Ptr<SVM> svm = SVM::load("/home/xiejiapeng/xie_jia_peng/shaobing2020_test/train/svm_test/svm_new/svm0.xml");
 
@@ -31,8 +36,21 @@ LongFindArmor::LongFindArmor()
 }
 
 bool LongFindArmor::IsHaveArmor(Mat & src){
-    SrcImage = Mat::zeros(src.size(),src.type());
+    max_width = src.size().width;
+    max_hight = src.size().height;
+//    SrcImage = Mat::zeros(src.size(),src.type());
     src.copyTo(SrcImage);
+
+    if(BestArmor.IsHave&&BestArmor.armor.size.area()>0){
+        ROI = src(ArmorRoi);
+//        rectangle(SrcImage, ArmorRoi, CV_RGB(0,255,0), 2, LINE_8);
+        imshow("ROI",ROI);
+    } else {
+        SrcImage.copyTo(ROI);
+    }
+
+    imshow("ROI",ROI);
+
     if(GetLedData()){
 
         GetArmorDate(leds,ArmorDate);
@@ -52,13 +70,19 @@ bool LongFindArmor::GetLedData(){
     std::vector<cv::Mat>splits;
     cv::Mat gray,binary;
 
-    GaussianBlur(SrcImage,SrcImage,Size(3,3),0,0);
+//    GaussianBlur(SrcImage,SrcImage,Size(3,3),0,0);
     cv::split(SrcImage,splits);
 
     if(color == RED){
         cv::subtract(splits[2],splits[0],binary);
     }else{
-        cv::subtract(splits[0],splits[2],binary);
+        cv::subtract(splits[0],splits[2],binary);//    if(BestArmor.IsHave&&BestArmor.armor.size.area()>0){
+        //        Rect ArmorRoi = Rect(BestArmor.armor.center.x-BestArmor.armor.size.width/2,BestArmor.armor.center.y-BestArmor.armor.size.height/2,BestArmor.armor.size.width*5,BestArmor.armor.size.height*5);
+        //        ROI = src(ArmorRoi);
+        //        rectangle(SrcImage, ArmorRoi, CV_RGB(0,255,0), 2, LINE_8);
+        //    } else {
+        //        src.copyTo(ROI);
+        //    }
     }
     cvtColor(SrcImage,gray,CV_RGB2GRAY);
 
@@ -73,7 +97,7 @@ bool LongFindArmor::GetLedData(){
     cv::Mat element=cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3));
      cv::Mat gray_element=cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3));
     dilate(binary,binary,element);
-//    dilate(gray,gray,gray_element);
+    dilate(gray,gray,gray_element);
 
     GetLeds(gray,binary);
 //    waitKey(200);
@@ -125,10 +149,10 @@ void LongFindArmor::GetLeds(const cv::Mat &gray, const cv::Mat &binary){
             if(point){
                 cv::Mat data_contour=cv::Mat(gray_contours[j].size(),2,CV_64FC1);
 //                cout<<gray_contours[j].size()<<endl;
-                Point max,min;
+                Point2f max,min;
                 max = gray_contours[j][0];
                 min = gray_contours[j][0];
-                double max_y,min_y;
+                float max_y,min_y;
                 max_y = min.y;
                 min_y = min.y;
                 for(int ii=0;ii<data_contour.rows;++ii)
@@ -163,17 +187,17 @@ void LongFindArmor::GetLeds(const cv::Mat &gray, const cv::Mat &binary){
 
                 dir1 = dir1 * (1 / sqrt((float)dir1.x*dir1.x + (float)dir1.y*dir1.y));
 //                dir2 = dir2 * (1 / sqrt((float)dir2.x*dir2.x + (float)dir2.y*dir2.y));
-                Point pos = Point(pca_analysis.mean.at<double>(0, 0),pca_analysis.mean.at<double>(0, 1));
-                Point max_xiangliang;
+                Point2f pos = Point2f(pca_analysis.mean.at<double>(0, 0),pca_analysis.mean.at<double>(0, 1));
+                Point2f max_xiangliang;
                 max_xiangliang = max - pos;
                 float pos2 = (max_xiangliang.x*dir1.x+max_xiangliang.y*dir1.y)/sqrt(dir1.x*dir1.x+dir1.y*dir1.y);
                 //计算出直线，在主要方向上绘制直线
 //                 line(SrcImage, pos, pos + Point(pos2*dir1.x,pos2*dir1.y) , CV_RGB(0, 0, 255),4);
-                  line(SrcImage, pos + Point(pos2*dir1.x,pos2*dir1.y)-Point(20,0), pos - Point(pos2*dir1.x,pos2*dir1.y)-Point(20,0) , CV_RGB(0, 0, 255),4);
+                  line(SrcImage, pos + Point2f(pos2*dir1.x,pos2*dir1.y), pos - Point2f(pos2*dir1.x,pos2*dir1.y) , CV_RGB(0, 0, 255),4);
 
 
-                   leds.push_back( pos - Point(pos2*dir1.x,pos2*dir1.y));
-                    leds.push_back( pos + Point(pos2*dir1.x,pos2*dir1.y));
+                   leds.push_back( pos - Point2f(pos2*dir1.x,pos2*dir1.y));
+                    leds.push_back( pos + Point2f(pos2*dir1.x,pos2*dir1.y));
 
 //                imshow("构型",SrcImage);
             }
@@ -182,7 +206,7 @@ void LongFindArmor::GetLeds(const cv::Mat &gray, const cv::Mat &binary){
 
 }
 
-void LongFindArmor::GetArmorDate(vector<Point> & leds,vector<RotatedRect> & ArmorDate){
+void LongFindArmor::GetArmorDate(vector<Point2f> & leds,vector<RotatedRect> & ArmorDate){
     for(size_t i = 0;i<leds.size();i+=2){
         if(abs(leds[i].y-leds[i+1].y)<3)continue;
         for(size_t j = 0;j<leds.size();j+=2){
@@ -214,36 +238,40 @@ void LongFindArmor::GetArmorDate(vector<Point> & leds,vector<RotatedRect> & Armo
 //                     cout<<"进距离差："<< abs(left-right)<<endl;
 //                     cout<<"进角度差："<< fabs( (float)(angle - angle2))<<endl;
 //                    float angle1=atan2((leds[i].y-leds[j].y),abs(leds[i].x-leds[j].x))*180/CV_PI;
-                    float angle1,angle_led1,angle_led2;
+                    float angle1,angle_led1,angle_led2,angle2;
                     if(leds[i].x<leds[j].x){
-                         angle1=atan2(abs(leds[i].x-leds[j].x),-(leds[i].y-leds[j].y))*180/CV_PI;
-                         angle_led1=atan2(abs(leds[i].y-leds[i+1].y),(leds[i].x-leds[i+1].x))*180/CV_PI;
-                         angle_led2=atan2(abs(leds[j].y-leds[j+1].y),(leds[j].x-leds[j+1].x))*180/CV_PI;
+                         angle1=atan2(fabs(leds[i].x-leds[j].x),-(leds[i].y-leds[j].y))*180/CV_PI;
+                         angle2=atan2(fabs(leds[i+1].x-leds[j+1].x),-(leds[i+1].y-leds[j+1].y))*180/CV_PI;
+                         angle_led1=atan2(fabs(leds[i].y-leds[i+1].y),(leds[i].x-leds[i+1].x))*180/CV_PI;
+                         angle_led2=atan2(fabs(leds[j].y-leds[j+1].y),(leds[j].x-leds[j+1].x))*180/CV_PI;
                     }else{
-                         angle1=atan2(abs(leds[i].x-leds[j].x),(leds[i].y-leds[j].y))*180/CV_PI;
-                         angle_led2=atan2(abs(leds[j].y-leds[j+1].y),-(leds[j].x-leds[j+1].x))*180/CV_PI;
-                         angle_led1=atan2(abs(leds[i].y-leds[i+1].y),-(leds[i].x-leds[i+1].x))*180/CV_PI;
+                         angle1=atan2(fabs(leds[i].x-leds[j].x),(leds[i].y-leds[j].y))*180/CV_PI;
+                         angle2=atan2(fabs(leds[i+1].x-leds[j+1].x),(leds[i+1].y-leds[j+1].y))*180/CV_PI;
+                         angle_led2=atan2(fabs(leds[j].y-leds[j+1].y),-(leds[j].x-leds[j+1].x))*180/CV_PI;
+                         angle_led1=atan2(fabs(leds[i].y-leds[i+1].y),-(leds[i].x-leds[i+1].x))*180/CV_PI;
 
                     }
-                    cout<<(abs(leds[j].y-leds[j+1].y)+abs(leds[i].y-leds[i+1].y))/2<<endl;
-//                    cout<<"平行角度差： "<<fabs((angle_led1+angle_led2)/2.0-angle1)<<endl;
-//                    cout<<"平行角度差限制："<<(abs(leds[j].y-leds[j+1].y)+abs(leds[i].y-leds[i+1].y))/2/4<<endl;
+                    cout<<(left+right)/2<<endl;
+                    cout<<"平行角度差： "<<fabs((angle_led1+angle_led2)/2.0-(angle1+angle2)/2)<<endl;
                     //根据灯条长度处理角度限制范围
-                    int xian_zhi = (abs(leds[j].y-leds[j+1].y)+abs(leds[i].y-leds[i+1].y))/2/4;
+                    float xian_zhi = (left+right)/2.0/4.0;
                     if(xian_zhi<5){
                         xian_zhi = 5;
                     }
+                    cout<<"平行角度差限制："<<xian_zhi<<endl;
+
                     //依据灯条长度动态修改平行角度差
-                    if(fabs((angle_led1+angle_led2)/2.0-angle1)>(abs(leds[j].y-leds[j+1].y)+abs(leds[i].y-leds[i+1].y))/2/4)
+                    if(fabs((angle_led1+angle_led2)/2.0-(angle1+angle2)/2)>xian_zhi)
                         continue;
-                    Point center = Point((leds[i+1].x+leds[i].x+leds[j+1].x+leds[j].x)/4,(leds[i+1].y+leds[i].y+leds[j+1].y+leds[j].y)/4);
+                    Point2f center = Point2f((leds[i+1].x+leds[i].x+leds[j+1].x+leds[j].x)/4,(leds[i+1].y+leds[i].y+leds[j+1].y+leds[j].y)/4);
                     angle1 =- (angle1 - 90);
+                    angle2 =- (angle2 - 90);
 //                    if(angle1>90){
 //                        angle1 = (180-angle1 );
 //                    }
-                    int width = (abs (leds[i].x-leds[j].x)+abs (leds[i+1].x-leds[j+1].x))/2;
-                    int hight = (abs (leds[i].y-leds[i+1].y)+abs(leds[j].y-leds[j+1].y))/2;
-                    RotatedRect Armor(center,Size(width,hight),angle1);
+                    int width = (fabs (leds[i].x-leds[j].x)+fabs (leds[i+1].x-leds[j+1].x))/2;
+                    int hight = (fabs (leds[i].y-leds[i+1].y)+fabs(leds[j].y-leds[j+1].y))/2;
+                    RotatedRect Armor(center,Size(width,hight),(angle1+angle2)/2);
 //                    Point2f vertices[4];
 //                    Armor.points(vertices);
 
@@ -257,10 +285,10 @@ void LongFindArmor::GetArmorDate(vector<Point> & leds,vector<RotatedRect> & Armo
 //                     imshow("绘画",SrcImage);
                     RM_ArmorDate _Armor;
                     _Armor.armor = Armor;
-                    cout<<"灯条1高度："<<abs (leds[i].y-leds[i+1].y)<<endl<<"灯条2高度："<<fabs(leds[j].y-leds[j+1].y)<<endl;
-                    _Armor.height = (abs (leds[i].y-leds[i+1].y)+abs(leds[j].y-leds[j+1].y))-abs(abs (leds[i].y-leds[i+1].y)-abs(leds[j].y-leds[j+1].y));
-                    _Armor.cha = abs(abs (leds[i].y-leds[i+1].y)-abs(leds[j].y-leds[j+1].y));
-                    cout<<"jin jin 进"<<"高度："<<_Armor.height <<endl;
+//                    cout<<"灯条1高度："<<fabs (leds[i].y-leds[i+1].y)<<endl<<"灯条2高度："<<fabs(leds[j].y-leds[j+1].y)<<endl;
+                    _Armor.height = (fabs (leds[i].y-leds[i+1].y)+fabs(leds[j].y-leds[j+1].y))-fabs(fabs (leds[i].y-leds[i+1].y)-fabs(leds[j].y-leds[j+1].y));
+                    _Armor.cha = fabs(fabs (leds[i].y-leds[i+1].y)-fabs(leds[j].y-leds[j+1].y));
+//                    cout<<"jin jin 进"<<"高度："<<_Armor.height <<endl;
 
                     _ArmorDate.push_back(_Armor);
 
@@ -286,10 +314,10 @@ bool LongFindArmor::GetBestArmor(){
     }
     for(;i<_ArmorDate.size();i++){
         if(abs(_ArmorDate[i].armor.angle)<45){
-            BestArmor = _ArmorDate[i].armor;
+            BestArmor.armor = _ArmorDate[i].armor;
         }
     }
-    if(BestArmor.size.area()==0){
+    if(BestArmor.armor.size.area()==0){
         cout<<"BestArmor.size.area()==0"<<endl;
         return false;
     }
@@ -298,25 +326,25 @@ bool LongFindArmor::GetBestArmor(){
     for(;i<_ArmorDate.size();i++){
         if(_ArmorDate[i].height>height&&abs(_ArmorDate[i].armor.angle)<45){
             if((_ArmorDate[i].height-height)<10){
-                if(abs(_ArmorDate[i].armor.angle)<BestArmor.angle){
-                    BestArmor = _ArmorDate[i].armor;
+                if(abs(_ArmorDate[i].armor.angle)<BestArmor.armor.angle){
+                    BestArmor.armor = _ArmorDate[i].armor;
                 }
             }else{
                 height = _ArmorDate[i].height;
-                BestArmor = _ArmorDate[i].armor;
+                BestArmor.armor = _ArmorDate[i].armor;
             }
         }
     }
 //    cout<<"最终装甲斜率："<<abs(BestArmor.angle)<<endl;
     Point2f vertices[4];
-    BestArmor.points(vertices);
+    BestArmor.armor.points(vertices);
 
-    Mat rot_mat = getRotationMatrix2D(BestArmor.center, BestArmor.angle, 1.0);//求旋转矩阵
+    Mat rot_mat = getRotationMatrix2D(BestArmor.armor.center, BestArmor.armor.angle, 1.0);//求旋转矩阵
         Mat rot_image;
         Size dst_sz(SrcImage.size());
         warpAffine(SrcImage, rot_image, rot_mat, dst_sz);//原图像旋转
 //        imshow("rot_image", rot_image);
-        Mat result1 = rot_image(Rect(BestArmor.center.x - (BestArmor.size.width *3/ 10), BestArmor.center.y - (BestArmor.size.width/2), BestArmor.size.width*3/5, BestArmor.size.width));//提取ROI
+        Mat result1 = rot_image(Rect(BestArmor.armor.center.x - (BestArmor.armor.size.width *3/ 10), BestArmor.armor.center.y - (BestArmor.armor.size.width/2), BestArmor.armor.size.width*3/5, BestArmor.armor.size.width));//提取ROI
 
 //        cout<<"result1:"<<result1.size()<<endl;
 //        namedWindow("result",0);
@@ -325,9 +353,34 @@ bool LongFindArmor::GetBestArmor(){
             imshow("result", result1);
 
             prediction(result1);
+    BestArmor.IsHave = true;
 
-//    for (int i = 0; i < 4; i++)
-//        line(SrcImage, vertices[i], vertices[(i+1)%4], Scalar(255,255,0));
+    for (int i = 0; i < 4; i++)
+        line(SrcImage, vertices[i], vertices[(i+1)%4], Scalar(255,255,0));
+
+    int x = 0,y = 0,long_x = 0,long_y =  0;
+    if(BestArmor.armor.center.x-BestArmor.armor.size.width*5/2>=0&&BestArmor.armor.center.x-BestArmor.armor.size.width*5/2<=max_width){
+        x = BestArmor.armor.center.x-BestArmor.armor.size.width*5/2;
+    }
+
+    if(BestArmor.armor.center.y-BestArmor.armor.size.height*5/2>=0&&BestArmor.armor.center.y-BestArmor.armor.size.height*5/2<=max_hight){
+        y = BestArmor.armor.center.y-BestArmor.armor.size.height*5/2;
+    }
+
+    if((x +BestArmor.armor.size.width*5)<SrcImage.size().width ){
+        long_x = BestArmor.armor.size.width*5;
+    }else{
+        long_x = max_width - x;
+    }
+
+    if((y +BestArmor.armor.size.height*5)<SrcImage.size().height ){
+        long_y = BestArmor.armor.size.height*5;
+    }else{
+        long_y = max_hight - y;
+    }
+
+    ArmorRoi = Rect(x,y,long_x,long_y);
+    rectangle(SrcImage, ArmorRoi, CV_RGB(0,255,0), 2, LINE_8);
 
     return true;
 }

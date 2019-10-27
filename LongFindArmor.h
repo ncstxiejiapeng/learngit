@@ -19,6 +19,7 @@ struct RM_ArmorDate{
     RotatedRect armor;
     float height;
     float cha;
+    bool IsHave = false;
 };
 
 class LongFindArmor
@@ -36,10 +37,9 @@ private:
     float big_max_ratio = 4.3;
     float big_min_ratio = 3.5;
 
-    RotatedRect BestArmor;
 
     Mat SrcImage;
-    void GetArmorDate(vector<Point> & leds,vector<RotatedRect> & ArmorDate);
+    void GetArmorDate(vector<Point2f> & leds,vector<RotatedRect> & ArmorDate);
     vector<cv::RotatedRect> ArmorDate;
      vector<RM_ArmorDate> _ArmorDate;
     void prediction(Mat & src);

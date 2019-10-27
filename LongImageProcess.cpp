@@ -90,6 +90,6 @@ void LongImageProcess::ImageConsumer(){
              }
 
 
-             waitKey(20);
+             waitKey(1);
          }
 }
