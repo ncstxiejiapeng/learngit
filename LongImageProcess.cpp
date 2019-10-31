@@ -18,7 +18,7 @@ void LongImageProcess:: LongImageProducter(){
      VideoCapture cap("/home/xiejiapeng/视频/7.avi");
 
 #else
-      myown::VideoCapture cap ("/dev/video0",3);
+      myown::VideoCapture cap ("/dev/video1",3);
 //      cap("/dev/video_external",3);
       cap.setExpousureTime(0, exp_vule);
       cap.setVideoFormat(640, 480, 1);
@@ -62,7 +62,7 @@ void LongImageProcess:: LongImageProducter(){
          if(cishu%30 == 0)
          {
              AutExp(cap,(float)bright);
-             cout<<"帧数:"<<cishu<<endl;
+             cout<<"帧数:"<<cishu<<endl;BLUE
          }
 #endif
 #endif
@@ -84,9 +84,12 @@ void LongImageProcess::ImageConsumer(){
 //             cap>>LongSrcImage;
 //             imshow("处理后",LongSrcImage);
              LongFindArmor FinalArmorData;
+             AngleSolver GetAngle;
 
              if(FinalArmorData.IsHaveArmor(LongSrcImage)){
-
+                 GetAngle.GetArmorAngle(FinalArmorData.FinalArmor);
+             }else{
+//                 FinalArmorData.clear();
              }
 
 

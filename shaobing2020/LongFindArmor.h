@@ -6,6 +6,7 @@
 #include <iostream>
 #include<math.h>
 #include <opencv2/calib3d/calib3d.hpp>
+#include<AngleSolver.h>
 
 using namespace cv;
 using namespace std;
@@ -13,13 +14,6 @@ using namespace std;
 enum ArmorColor{
     RED,
     BLUE
-};
-
-struct RM_ArmorDate{
-    RotatedRect armor;
-    float height;
-    float cha;
-    bool IsHave = false;
 };
 
 class LongFindArmor
@@ -30,6 +24,8 @@ public:
     LongFindArmor();
     bool GetBestArmor();
     void GetLeds(const cv::Mat &gray, const cv::Mat &binary);
+    void clear();
+    RM_ArmorDate FinalArmor;
 private:
 
     float small_max_ratio = 3.0;

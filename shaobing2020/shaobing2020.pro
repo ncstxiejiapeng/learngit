@@ -10,7 +10,8 @@ SOURCES += main.cpp \
     AutExp.cpp \
     ArmorDector.cpp \
     VideoCapture.cpp \
-    LongFindArmor.cpp
+    LongFindArmor.cpp \
+    AngleSolver.cpp
 
 LIBS += /usr/local/lib/libopencv_calib3d.so \
 /usr/local/lib/libopencv_core.so \
@@ -34,4 +35,5 @@ HEADERS += \
     AutExp.h \
     ArmorDector.h \
     VideoCapture.h \
-    LongFindArmor.h
+    LongFindArmor.h \
+    AngleSolver.h
